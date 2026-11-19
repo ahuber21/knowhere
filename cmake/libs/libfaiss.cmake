@@ -494,6 +494,47 @@ if(__X86_64)
     target_link_libraries(faiss_avx512_spr PRIVATE milvus-common::milvus-common)
   endif()
 
+  if(WITH_SVS)
+    # Use pre-built SVS runtime bindings (like baseline Faiss does).
+    # The tarball ships libsvs_runtime.so with all deps (fmt, spdlog) baked in,
+    # plus CMake config files and runtime API headers.
+    # Override: set svs_runtime_DIR to a local unpacked tarball to skip download.
+    find_package(svs_runtime 0.5.0 QUIET)
+    if(NOT svs_runtime_FOUND)
+      include(FetchContent)
+      set(SVS_TARBALL_URL
+          "https://github.com/intel/ScalableVectorSearch/releases/download/v0.5.0/svs-cpp-runtime-bindings.tar.gz"
+          CACHE STRING "URL for pre-built SVS runtime bindings tarball")
+      FetchContent_Declare(svs URL "${SVS_TARBALL_URL}" DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+      FetchContent_MakeAvailable(svs)
+      set(svs_runtime_DIR "${svs_SOURCE_DIR}/lib/cmake/svs_runtime")
+      find_package(svs_runtime 0.5.0 REQUIRED)
+    endif()
+
+    add_library(faiss_svs INTERFACE)
+    target_link_libraries(faiss_svs INTERFACE svs::svs_runtime)
+    target_compile_definitions(faiss_svs INTERFACE FAISS_ENABLE_SVS FAISS_SVS_RUNTIME_VERSION=v0)
+
+    # GEM needs a runtime built with SVS_RUNTIME_ENABLE_GEM=ON. Detect it from
+    # the imported target so the stock 0.5.0 tarball (no GEM) still builds.
+    get_target_property(SVS_RUNTIME_DEFS svs::svs_runtime INTERFACE_COMPILE_DEFINITIONS)
+    if(SVS_RUNTIME_DEFS MATCHES "(^|;)SVS_RUNTIME_HAS_GEM(=1)?(;|$)")
+      target_compile_definitions(faiss_svs INTERFACE FAISS_SVS_HAS_GEM)
+    else()
+      list(REMOVE_ITEM FAISS_SRCS
+           "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/faiss/faiss/svs/IndexSVSGem.cpp")
+    endif()
+
+    target_link_libraries(faiss_avx2 PUBLIC faiss_svs)
+    target_link_libraries(faiss_avx512 PUBLIC faiss_svs)
+    if(FAISS_ENABLE_AVX512_VPOPCNT)
+      target_link_libraries(faiss_avx512_vpopcnt PUBLIC faiss_svs)
+    endif()
+    if(FAISS_ENABLE_AVX512_SPR)
+      target_link_libraries(faiss_avx512_spr PUBLIC faiss_svs)
+    endif()
+  endif()
+
   add_library(faiss STATIC ${FAISS_SRCS})
   target_include_directories(faiss PRIVATE ${Boost_INCLUDE_DIRS})
 
@@ -536,35 +577,7 @@ if(__X86_64)
   endif()
 
   if(WITH_SVS)
-    # Use pre-built SVS runtime bindings (like baseline Faiss does).
-    # The tarball ships libsvs_runtime.so with all deps (fmt, spdlog) baked in,
-    # plus CMake config files and runtime API headers.
-    # Override: set svs_runtime_DIR to a local unpacked tarball to skip download.
-    find_package(svs_runtime 0.5.0 QUIET)
-    if(NOT svs_runtime_FOUND)
-      include(FetchContent)
-      set(SVS_TARBALL_URL
-          "https://github.com/intel/ScalableVectorSearch/releases/download/v0.5.0/svs-cpp-runtime-bindings.tar.gz"
-          CACHE STRING "URL for pre-built SVS runtime bindings tarball")
-      FetchContent_Declare(svs URL "${SVS_TARBALL_URL}" DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
-      FetchContent_MakeAvailable(svs)
-      set(svs_runtime_DIR "${svs_SOURCE_DIR}/lib/cmake/svs_runtime")
-      find_package(svs_runtime 0.5.0 REQUIRED)
-    endif()
-
-    add_library(faiss_svs INTERFACE)
-    target_link_libraries(faiss_svs INTERFACE svs::svs_runtime)
-    target_compile_definitions(faiss_svs INTERFACE FAISS_ENABLE_SVS FAISS_SVS_RUNTIME_VERSION=v0)
-
     target_link_libraries(faiss PUBLIC faiss_svs)
-    target_link_libraries(faiss_avx2 PUBLIC faiss_svs)
-    target_link_libraries(faiss_avx512 PUBLIC faiss_svs)
-    if(FAISS_ENABLE_AVX512_VPOPCNT)
-      target_link_libraries(faiss_avx512_vpopcnt PUBLIC faiss_svs)
-    endif()
-    if(FAISS_ENABLE_AVX512_SPR)
-      target_link_libraries(faiss_avx512_spr PUBLIC faiss_svs)
-    endif()
   endif()
 endif()
 

@@ -68,6 +68,9 @@
 #include <faiss/svs/IndexSVSVamana.h>
 #include <faiss/svs/IndexSVSVamanaLVQ.h>
 #include <faiss/svs/IndexSVSVamanaLeanVec.h>
+#ifdef FAISS_SVS_HAS_GEM
+#include <faiss/svs/IndexSVSGem.h>
+#endif
 #endif
 #include <faiss/IndexScalarQuantizer.h>
 #include <faiss/MetaIndexes.h>
@@ -3241,6 +3244,35 @@ std::unique_ptr<Index> read_index_up(IOReader* f, int io_flags) {
         }
         idx = std::move(svs_ivf);
     }
+#ifdef FAISS_SVS_HAS_GEM
+    else if (h == fourcc("ISGM")) {
+        auto svs_gem = std::make_unique<IndexSVSGem>();
+        read_index_header(*svs_gem, f);
+        READ1(svs_gem->num_centroids);
+        READ1(svs_gem->graph_max_degree);
+        READ1(svs_gem->construction_window_size);
+        READ1(svs_gem->alpha);
+        READ1(svs_gem->prune_to);
+        READ1(svs_gem->max_candidate_pool_size);
+        READ1(svs_gem->transport_start);
+        READ1_BOOL(svs_gem->build_router);
+        READ1_BOOL(svs_gem->route_inserts);
+        READ1(svs_gem->seed);
+        READ1(svs_gem->num_threads);
+        READ1(svs_gem->search_window_size);
+        READ1(svs_gem->router_nprobe);
+
+        bool initialized;
+        READ1_BOOL(initialized);
+        if (initialized) {
+            faiss::svs_io::ReaderStreambuf rbuf(
+                    f, get_deserialization_vector_byte_limit());
+            std::istream is(&rbuf);
+            svs_gem->deserialize_impl(is);
+        }
+        idx = std::move(svs_gem);
+    }
+#endif // FAISS_SVS_HAS_GEM
 #endif // FAISS_ENABLE_SVS
     else if (h == fourcc("Iwrn") || h == fourcc("Iwrf")) {
         // Iwrn = new format (aux data embedded in SIMD blocks)

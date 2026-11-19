@@ -63,6 +63,9 @@
 #include <faiss/svs/IndexSVSVamana.h>
 #include <faiss/svs/IndexSVSVamanaLVQ.h>
 #include <faiss/svs/IndexSVSVamanaLeanVec.h>
+#ifdef FAISS_SVS_HAS_GEM
+#include <faiss/svs/IndexSVSGem.h>
+#endif
 #endif
 #include <faiss/IndexScalarQuantizer.h>
 #include <faiss/MetaIndexes.h>
@@ -1240,6 +1243,38 @@ void write_index(const Index* idx, IOWriter* f, int io_flags) {
             }
         }
     }
+#ifdef FAISS_SVS_HAS_GEM
+    else if (const IndexSVSGem* svs_gem = dynamic_cast<const IndexSVSGem*>(idx)) {
+        uint32_t h = fourcc("ISGM");
+        WRITE1(h);
+        write_index_header(svs_gem, f);
+        WRITE1(svs_gem->num_centroids);
+        WRITE1(svs_gem->graph_max_degree);
+        WRITE1(svs_gem->construction_window_size);
+        WRITE1(svs_gem->alpha);
+        WRITE1(svs_gem->prune_to);
+        WRITE1(svs_gem->max_candidate_pool_size);
+        WRITE1(svs_gem->transport_start);
+        WRITE1(svs_gem->build_router);
+        WRITE1(svs_gem->route_inserts);
+        WRITE1(svs_gem->seed);
+        WRITE1(svs_gem->num_threads);
+        WRITE1(svs_gem->search_window_size);
+        WRITE1(svs_gem->router_nprobe);
+
+        // is_trained tracks impl exactly: build() sets both together, reset()
+        // clears both together, so it doubles as the "initialized" flag.
+        bool initialized = svs_gem->is_trained;
+        WRITE1(initialized);
+        if (initialized) {
+            faiss::BufferedIOWriter bwr(f);
+            faiss::svs_io::WriterStreambuf wbuf(&bwr);
+            std::ostream os(&wbuf);
+            svs_gem->serialize_impl(os);
+            os.flush();
+        }
+    }
+#endif // FAISS_SVS_HAS_GEM
 #endif // FAISS_ENABLE_SVS
     else if (
             const IndexIVFRaBitQFastScan* ivrqfs =
