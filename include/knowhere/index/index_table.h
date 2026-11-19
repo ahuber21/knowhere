@@ -139,6 +139,7 @@ static std::set<std::pair<std::string, VecType>> legal_knowhere_index = {
     {IndexEnum::INDEX_SVS_IVF_LEANVEC, VecType::VECTOR_FLOAT},
     {IndexEnum::INDEX_SVS_IVF_LEANVEC, VecType::VECTOR_FLOAT16},
     {IndexEnum::INDEX_SVS_IVF_LEANVEC, VecType::VECTOR_BFLOAT16},
+    {IndexEnum::INDEX_SVS_GEM, VecType::VECTOR_FLOAT},
 #endif
 
     // sparse index
@@ -191,6 +192,9 @@ static std::set<std::string> legal_support_emb_list_knowhere_index = {
     IndexEnum::INDEX_DISKANN,
 #ifdef KNOWHERE_WITH_CARDINAL
     IndexEnum::INDEX_CARDINAL_TIERED,
+#endif
+#ifdef KNOWHERE_WITH_SVS
+    IndexEnum::INDEX_SVS_GEM,
 #endif
 };
 

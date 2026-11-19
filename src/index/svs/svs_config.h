@@ -238,5 +238,71 @@ class SvsIvfLeanVecConfig : public SvsIvfConfig {
     }
 };
 
+class SvsGemConfig : public BaseConfig {
+ public:
+    // Maximum degree of the GEM graph.
+    CFG_INT svs_graph_max_degree;
+    // Window size used during graph construction.
+    CFG_INT svs_construction_window_size;
+    // Pruning parameter for graph construction.
+    CFG_FLOAT svs_alpha;
+    // Number of coarse centroids used to quantize tokens. 0 picks a size from the token count.
+    CFG_INT gem_num_centroids;
+    // Entry-point transport construction: "northwest" or "cheapestrow".
+    CFG_STRING gem_transport_start;
+    // Train and save a router for search-time coarse-cluster routing.
+    CFG_BOOL gem_build_router;
+    // Route graph inserts through the router too; off keeps the reference graph unrouted.
+    CFG_BOOL gem_route_inserts;
+    // Window size used during search.
+    CFG_INT svs_search_window_size;
+    // Coarse clusters probed per query token when routing search.
+    CFG_INT gem_router_nprobe;
+    KNOWHERE_DECLARE_CONFIG(SvsGemConfig) {
+        KNOWHERE_CONFIG_DECLARE_FIELD(svs_graph_max_degree)
+            .description("maximum degree of the GEM graph.")
+            .set_default(24)
+            .set_range(4, 256)
+            .for_train();
+        KNOWHERE_CONFIG_DECLARE_FIELD(svs_construction_window_size)
+            .description("window size used during graph construction.")
+            .set_default(80)
+            .set_range(1, 10000)
+            .for_train();
+        KNOWHERE_CONFIG_DECLARE_FIELD(svs_alpha)
+            .description("pruning parameter for graph construction.")
+            .set_default(1.2f)
+            .set_range(0.0f, 10.0f)
+            .for_train();
+        KNOWHERE_CONFIG_DECLARE_FIELD(gem_num_centroids)
+            .description("number of coarse centroids. 0 picks a size from the token count.")
+            .set_default(0)
+            .set_range(0, 1000000)
+            .for_train();
+        KNOWHERE_CONFIG_DECLARE_FIELD(gem_transport_start)
+            .description("entry-point transport construction: northwest or cheapestrow.")
+            .set_default("northwest")
+            .for_train();
+        KNOWHERE_CONFIG_DECLARE_FIELD(gem_build_router)
+            .description("train and save a router for search-time coarse-cluster routing.")
+            .set_default(true)
+            .for_train();
+        KNOWHERE_CONFIG_DECLARE_FIELD(gem_route_inserts)
+            .description("route graph inserts through the router too.")
+            .set_default(false)
+            .for_train();
+        KNOWHERE_CONFIG_DECLARE_FIELD(svs_search_window_size)
+            .description("window size used during search.")
+            .set_default(1000)
+            .set_range(1, 1000000)
+            .for_search();
+        KNOWHERE_CONFIG_DECLARE_FIELD(gem_router_nprobe)
+            .description("coarse clusters probed per query token when routing search.")
+            .set_default(4)
+            .set_range(0, 1000000)
+            .for_search();
+    }
+};
+
 }  // namespace knowhere
 #endif /* SVS_CONFIG_H */

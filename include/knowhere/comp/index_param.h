@@ -70,6 +70,7 @@ constexpr const char* INDEX_SVS_VAMANA_LVQ = "SVS_VAMANA_LVQ";
 constexpr const char* INDEX_SVS_VAMANA_LEANVEC = "SVS_VAMANA_LEANVEC";
 constexpr const char* INDEX_SVS_IVF = "SVS_IVF";
 constexpr const char* INDEX_SVS_IVF_LEANVEC = "SVS_IVF_LEANVEC";
+constexpr const char* INDEX_SVS_GEM = "SVS_GEM";
 
 constexpr const char* INDEX_SPARSE_INVERTED_INDEX = "SPARSE_INVERTED_INDEX";
 constexpr const char* INDEX_SPARSE_INVERTED_INDEX_TIERED = "SPARSE_INVERTED_INDEX_TIERED";
@@ -134,6 +135,7 @@ constexpr const char* EMB_LIST_RAW_INDEX = "EMB_LIST_RAW_INDEX";
 constexpr const char* EMB_LIST_STRATEGY_TOKENANN = "tokenann";
 constexpr const char* EMB_LIST_STRATEGY_MUVERA = "muvera";
 constexpr const char* EMB_LIST_STRATEGY_LEMUR = "lemur";
+constexpr const char* EMB_LIST_STRATEGY_GEM = "gem";
 
 // Representative query sample attached to a train DataSet, for OOD-aware training.
 // The tensor is ALWAYS fp32, regardless of the index data type, and is borrowed rather than owned by the DataSet:
@@ -234,6 +236,13 @@ constexpr const char* SVS_LEANVEC_OOD = "svs_leanvec_ood";
 constexpr const char* SVS_IVF_NLIST = "svs_ivf_nlist";
 constexpr const char* SVS_IVF_NPROBE = "svs_ivf_nprobe";
 constexpr const char* SVS_IVF_K_REORDER = "svs_ivf_k_reorder";
+
+// SVS GEM Params
+constexpr const char* GEM_NUM_CENTROIDS = "gem_num_centroids";
+constexpr const char* GEM_TRANSPORT_START = "gem_transport_start";
+constexpr const char* GEM_BUILD_ROUTER = "gem_build_router";
+constexpr const char* GEM_ROUTE_INSERTS = "gem_route_inserts";
+constexpr const char* GEM_ROUTER_NPROBE = "gem_router_nprobe";
 
 // FAISS additional Params
 constexpr const char* HNSW_REFINE = "refine";

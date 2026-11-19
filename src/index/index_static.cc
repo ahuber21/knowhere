@@ -74,6 +74,14 @@ IndexStaticFaced<DataType>::ConfigCheck(const IndexType& indexType, const IndexV
             }
         }
 
+        {
+            auto strategy = cfg->emb_list_strategy.value_or("");
+            if (strategy == meta::EMB_LIST_STRATEGY_GEM && indexType != IndexEnum::INDEX_SVS_GEM) {
+                msg = "gem strategy is only supported by the SVS_GEM index, got index type '" + indexType + "'";
+                return Status::invalid_args;
+            }
+        }
+
         if (Instance().staticConfigCheckMap.find(indexType) != Instance().staticConfigCheckMap.end()) {
             return Instance().staticConfigCheckMap[indexType](*cfg, knowhere::PARAM_TYPE::TRAIN, msg);
         }

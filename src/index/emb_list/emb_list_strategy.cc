@@ -26,6 +26,8 @@ EmbListStrategyPtr
 CreateMuveraEmbListStrategy();
 EmbListStrategyPtr
 CreateLemurEmbListStrategy();
+EmbListStrategyPtr
+CreateGemEmbListStrategy();
 
 expected<EmbListStrategyPtr>
 CreateEmbListStrategy(const std::string& strategy_type, const BaseConfig& config) {
@@ -37,6 +39,9 @@ CreateEmbListStrategy(const std::string& strategy_type, const BaseConfig& config
     }
     if (strategy_type == meta::EMB_LIST_STRATEGY_LEMUR) {
         return CreateLemurEmbListStrategy();
+    }
+    if (strategy_type == meta::EMB_LIST_STRATEGY_GEM) {
+        return CreateGemEmbListStrategy();
     }
     LOG_KNOWHERE_ERROR_ << "Unknown emb_list strategy: " << strategy_type;
     return expected<EmbListStrategyPtr>::Err(Status::invalid_args, "unknown emb_list strategy: " + strategy_type);
