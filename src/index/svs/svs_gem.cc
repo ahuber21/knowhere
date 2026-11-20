@@ -19,6 +19,7 @@
 #include "faiss/cppcontrib/knowhere/impl/CountSizeIOWriter.h"
 #include "faiss/index_io.h"
 #include "faiss/svs/IndexSVSGem.h"
+#include "folly/ScopeGuard.h"
 #include "io/memory_io.h"
 #include "knowhere/bitsetview_idselector.h"
 #include "knowhere/comp/index_param.h"
@@ -45,6 +46,34 @@ str_to_gem_transport_start(const std::string& s) {
     }
     return std::nullopt;
 }
+
+// Concurrent segment builds share the build pool instead of each starting its own threads. Calling
+// parallel_for from a build-pool thread (Index::BuildAsync) can deadlock once the pool is saturated.
+class KnowhereGemBuildThreadPool : public svs_runtime::ThreadPoolInterface {
+ public:
+    explicit KnowhereGemBuildThreadPool(std::shared_ptr<ThreadPool> pool) : pool_(std::move(pool)) {
+    }
+
+    size_t
+    size() const override {
+        return pool_->size();
+    }
+
+    void
+    parallel_for(size_t n, const std::function<void(size_t)>& fn) override {
+        std::vector<folly::Future<folly::Unit>> futures;
+        futures.reserve(n);
+        for (size_t i = 0; i < n; ++i) {
+            futures.emplace_back(pool_->push([&fn, i]() { fn(i); }));
+        }
+        // collectAll (inside WaitAllSuccess) joins every future before the loop that rethrows,
+        // so a failing task never leaves a sibling task's thread unjoined.
+        WaitAllSuccess(futures);
+    }
+
+ private:
+    std::shared_ptr<ThreadPool> pool_;
+};
 }  // namespace
 
 // SVS_GEM indexes multi-vector documents (sets of tokens) directly: the base index holds the sets
@@ -110,8 +139,18 @@ class SvsGemIndexNode : public IndexNode {
             idx->transport_start = transport_start.value();
             idx->build_router = g_cfg.gem_build_router.value();
             idx->route_inserts = g_cfg.gem_route_inserts.value();
-            idx->num_threads = GetBuildThreadPoolSize();
-            idx->build(static_cast<faiss::idx_t>(num_docs), tokens, lims);
+
+            if (use_knowhere_build_pool) {
+                KnowhereGemBuildThreadPool pool(ThreadPool::GetGlobalBuildThreadPool());
+                idx->build_thread_pool = &pool;
+                // idx (and its borrowed pointer) must not outlive pool; clear it before either goes
+                // out of scope, on the exception path too.
+                auto clear_pool = folly::makeGuard([&] { idx->build_thread_pool = nullptr; });
+                idx->build(static_cast<faiss::idx_t>(num_docs), tokens, lims);
+            } else {
+                idx->num_threads = GetBuildThreadPoolSize();
+                idx->build(static_cast<faiss::idx_t>(num_docs), tokens, lims);
+            }
             index_ = std::move(idx);
         } catch (const std::exception& e) {
             LOG_KNOWHERE_ERROR_ << "SVS GEM build error: " << e.what();

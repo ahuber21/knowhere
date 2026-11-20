@@ -113,6 +113,18 @@ TEST_CASE("Test SVS GEM Build and Search", "[svs][gem]") {
         check_results(res.value());
     }
 
+    SECTION("Build without the Knowhere build pool") {
+        auto idx2 = knowhere::IndexFactory::Instance().Create<knowhere::fp32>(knowhere::IndexEnum::INDEX_SVS_GEM,
+                                                                              version);
+        REQUIRE(idx2.has_value());
+        auto index2 = idx2.value();
+        REQUIRE(index2.Build(train_ds, conf, /*use_knowhere_build_pool=*/false) == knowhere::Status::success);
+
+        auto res = index2.Search(query_ds, conf, nullptr);
+        REQUIRE(res.has_value());
+        check_results(res.value());
+    }
+
     SECTION("Serialize/Deserialize round trip") {
         auto res1 = index.Search(query_ds, conf, nullptr);
         REQUIRE(res1.has_value());
