@@ -121,6 +121,17 @@ class SvsGemIndexNode : public IndexNode {
         return Status::success;
     }
 
+    // Stage 2 of the gem strategy: exact MaxSim reads the emb_list raw token store.
+    expected<DataSetPtr>
+    CalcDistByStorageIds(const DataSetPtr dataset, const BitsetView& bitset, const int64_t* labels,
+                         const size_t labels_len, const bool is_cosine, milvus::OpContext* op_context) const override {
+        if (!emb_list_raw_index_) {
+            return expected<DataSetPtr>::Err(Status::empty_index, "SVS_GEM has no emb_list raw token store");
+        }
+        return CalcDistByRawIndex(dataset, labels, labels_len, is_cosine, ThreadPool::GetGlobalSearchThreadPool(),
+                                  op_context);
+    }
+
     expected<DataSetPtr>
     Search(const DataSetPtr dataset, std::unique_ptr<Config> cfg, const BitsetView& bitset,
            milvus::OpContext* op_context) const override {
