@@ -11,6 +11,7 @@
 
 #if defined(KNOWHERE_WITH_SVS) && defined(FAISS_SVS_HAS_GEM)
 
+#include <type_traits>
 #include <limits>
 #include <optional>
 
@@ -48,7 +49,11 @@ str_to_gem_transport_start(const std::string& s) {
 
 // SVS_GEM indexes multi-vector documents (sets of tokens) directly: the base index holds the sets
 // itself, so it only ever sees the "gem" emb_list strategy and fp32 data.
+template <typename DataType>
 class SvsGemIndexNode : public IndexNode {
+    // The emb_list raw token store that stage 2 reads is fp32-only.
+    static_assert(std::is_same_v<DataType, fp32>, "SVS_GEM supports fp32 tokens only");
+
  public:
     SvsGemIndexNode(const int32_t version, const Object& object) : IndexNode(version), index_(nullptr) {
     }
