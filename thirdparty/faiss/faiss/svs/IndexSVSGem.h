@@ -54,6 +54,9 @@ struct IndexSVSGem : Index {
     bool route_inserts = false;
     uint32_t seed = 42;
     size_t num_threads = 0; // 0: runtime default
+    // Borrowed: must outlive build(); never serialized. When set, build()
+    // runs on it and num_threads is ignored.
+    svs_runtime::ThreadPoolInterface* build_thread_pool = nullptr;
 
     // default search parameters
     size_t search_window_size = 1000;

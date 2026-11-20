@@ -83,14 +83,24 @@ void IndexSVSGem::build(idx_t n_docs, const float* tokens, const size_t* offsets
     };
 
     svs_runtime::GemIndex* raw = nullptr;
-    auto status = svs_runtime::GemIndex::build(
-            &raw,
-            static_cast<size_t>(d),
-            static_cast<size_t>(n_docs),
-            tokens,
-            offsets,
-            build_params,
-            default_search);
+    auto status = build_thread_pool != nullptr
+            ? svs_runtime::GemIndex::build(
+                      &raw,
+                      static_cast<size_t>(d),
+                      static_cast<size_t>(n_docs),
+                      tokens,
+                      offsets,
+                      *build_thread_pool,
+                      build_params,
+                      default_search)
+            : svs_runtime::GemIndex::build(
+                      &raw,
+                      static_cast<size_t>(d),
+                      static_cast<size_t>(n_docs),
+                      tokens,
+                      offsets,
+                      build_params,
+                      default_search);
     if (!status.ok()) {
         FAISS_THROW_MSG(status.message());
     }
